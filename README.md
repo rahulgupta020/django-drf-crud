@@ -6,7 +6,7 @@ git clone [https://github.com/your-username/your-repository.git](https://github.
 create a virtual enviroment according to opereting system. In my case i have linux.
 python3 -m venv env
 source env/bin/activate  # On Linux/Mac
-# OR
+OR
 env\Scripts\activate  # On Windows
 
 install requirements.file
