@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            /* align-items: center; */
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+
+        .heading {
+            text-align: center;
+        }
+
+        #taskForm {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 600px;
+            text-align: center;
+        }
+
+        form {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        label {
+            margin-bottom: 5px;
+        }
+
+        input,
+        textarea,
+        select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #4caf50;
+            color: #fff;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid black;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        .action-buttons {
+            display: flex;
+            /* justify-content: space-between; */
+        }
+
+        td.description-cell {
+            max-width: 200px;
+            word-wrap: break-word;
+        }
+
+
+        .edit-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        .delete-button {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="taskManager">
+        <h1 class="heading">Task Manager</h1>
+
+        <form id="taskForm">
+            <label for="title">Title:</label>
+            <input type="text" id="title" required>
+            <label for="description">Description:</label>
+            <textarea id="description" required></textarea>
+            <label for="status">Status:</label>
+            <select id="status" required>
+                <option value="Pending">Pending</option>
+                <option value="Completed">Completed</option>
+            </select>
+            <button type="submit">Create Task</button>
+        </form>
+
+        <table id="dataTable">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+
+    <script>
+
+        function fetchAndRenderTasks() {
+            fetch('http://127.0.0.1:8000/api/tasks/')
+                .then(response => response.json())
+                .then(tasks => {
+                    const tableBody = document.getElementById('dataTable').getElementsByTagName('tbody')[0];
+                    tableBody.innerHTML = '';
+
+                    tasks.forEach(task => {
+                        const row = tableBody.insertRow();
+                        const cell1 = row.insertCell(0);
+                        const cell2 = row.insertCell(1);
+                        const cell3 = row.insertCell(2);
+                        const cell4 = row.insertCell(3);
+
+                        cell1.textContent = task.title;
+                        cell2.textContent = task.description;
+                        cell2.classList.add('description-cell');
+                        cell3.textContent = task.status;
+
+                        const actionButtons = document.createElement('div');
+                        actionButtons.classList.add('action-buttons');
+
+                        const editButton = document.createElement('button');
+                        editButton.textContent = 'Edit';
+                        editButton.classList.add('edit-button');
+                        editButton.addEventListener('click', () => updateTask(task.id)); // Replace editTask with your edit function
+
+                        const deleteButton = document.createElement('button');
+                        deleteButton.textContent = 'Delete';
+                        deleteButton.classList.add('delete-button');
+                        deleteButton.addEventListener('click', () => deleteTask(task.id)); // Replace deleteTask with your delete function
+
+                        actionButtons.appendChild(editButton);
+                        actionButtons.appendChild(deleteButton);
+
+                        cell4.appendChild(actionButtons);
+
+
+                    });
+
+                })
+                .catch(error => console.error('Error fetching tasks:', error));
+        }
+
+        function createTask(event) {
+            event.preventDefault();
+            const title = document.getElementById('title').value;
+            const description = document.getElementById('description').value;
+            const status = document.getElementById('status').value;
+
+
+            fetch('http://127.0.0.1:8000/api/tasks/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: title,
+                    description: description,
+                    status: status,
+                }),
+            })
+                .then(response => response.json())
+                .then(() => {
+                    document.getElementById('title').value = '';
+                    document.getElementById('description').value = '';
+
+                    fetchAndRenderTasks();
+                })
+                .catch(error => console.error('Error creating task:', error));
+        }
+
+        function closePrompt(promptContainer) {
+            document.body.removeChild(promptContainer);
+        }
+
+
+        function saveUpdatedTask(taskId) {
+            const newTitle = document.getElementById('newTitle').value;
+            const newDescription = document.getElementById('newDescription').value;
+            const newStatus = document.getElementById('newStatus').value;
+
+            fetch(`http://127.0.0.1:8000/api/tasks/${taskId}/`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: newTitle,
+                    description: newDescription,
+                    status: newStatus,
+                }),
+            })
+                .then(response => response.json())
+                .then(() => {
+                    fetchAndRenderTasks();
+                    closePrompt();
+                })
+                .catch(error => console.error(`Error updating task ${taskId}:`, error));
+        }
+
+        function updateTask(taskId) {
+            fetch(`http://127.0.0.1:8000/api/tasks/${taskId}/`)
+                .then(response => response.json())
+                .then(task => {
+                    const promptContainer = document.createElement('div');
+                    promptContainer.innerHTML = `
+                <h2>Update Task</h2>
+                <label for="newTitle">Title:</label>
+                <input type="text" id="newTitle" value="${task.title}" required>
+                <label for="newDescription">Description:</label>
+                <textarea id="newDescription" required>${task.description}</textarea>
+                <label for="newStatus">Status:</label>
+                <select id="newStatus" required>
+                    <option value="Pending" ${task.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                    <option value="Completed" ${task.status === 'Completed' ? 'selected' : ''}>Completed</option>
+                </select>
+                <button onclick="saveUpdatedTask(${taskId})">Save</button>
+                <button onclick="closePrompt()">Close</button>
+            `;
+                    promptContainer.style.position = 'fixed';
+                    promptContainer.style.top = '50%';
+                    promptContainer.style.left = '50%';
+                    promptContainer.style.transform = 'translate(-50%, -50%)';
+                    promptContainer.style.background = '#fff';
+                    promptContainer.style.padding = '20px';
+                    promptContainer.style.borderRadius = '8px';
+                    promptContainer.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.1)';
+                    document.body.appendChild(promptContainer);
+
+                    function closePrompt() {
+                        document.body.removeChild(promptContainer);
+                    }
+
+                    promptContainer.querySelector('button:last-of-type').onclick = closePrompt;
+                })
+                .catch(error => console.error(`Error fetching task ${taskId}:`, error));
+        }
+
+
+        function deleteTask(taskId) {
+            if (confirm(`Are you sure you want to delete task with ID ${taskId}?`)) {
+                fetch(`http://127.0.0.1:8000/api/tasks/${taskId}/`, {
+                    method: 'DELETE',
+                })
+                    .then(() => {
+                        fetchAndRenderTasks();
+                    })
+                    .catch(error => console.error(`Error deleting task ${taskId}:`, error));
+            }
+        }
+        document.getElementById('taskForm').addEventListener('submit', createTask);
+        fetchAndRenderTasks();
+    </script>
+</body>
+
+</html>
